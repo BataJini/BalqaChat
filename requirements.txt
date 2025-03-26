@@ -1,2 +1,5 @@
 # This project uses only Python's built-in libraries
 # No additional packages are required 
+
+cryptography>=44.0.2
+colorama>=0.4.6  # For colored terminal output 
