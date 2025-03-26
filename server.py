@@ -30,7 +30,6 @@ class ChatServer:
         self.port = port
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         
-        # Create SSL context
         self.context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         self.context.load_cert_chain(certfile="server.crt", keyfile="server.key")
         
@@ -43,35 +42,31 @@ class ChatServer:
             print(f"\033[91mError starting server: {e}\033[0m")
             sys.exit(1)
             
-        self.clients = {}  # Dictionary to store client connections and their usernames
+        self.clients = {}
         self.colors = {
-            0: '\033[91m',  # Red
-            1: '\033[92m',  # Green
-            2: '\033[94m',  # Blue
+            0: '\033[91m',
+            1: '\033[92m',
+            2: '\033[94m',
         }
-        self.color_reset = '\033[0m'  # Reset color
-        self.session_keys = {}  # Store encryption keys for each client
+        self.color_reset = '\033[0m'
+        self.session_keys = {}
 
     def generate_session_key(self):
-        """Generate a secure session key"""
         return Fernet.generate_key()
 
     def encrypt_message(self, message, client_socket):
-        """Encrypt message for specific client"""
         if client_socket in self.session_keys:
             f = Fernet(self.session_keys[client_socket])
             return f.encrypt(message.encode()).decode()
         return message
 
     def decrypt_message(self, encrypted_message, client_socket):
-        """Decrypt message from specific client"""
         if client_socket in self.session_keys:
             f = Fernet(self.session_keys[client_socket])
             return f.decrypt(encrypted_message.encode()).decode()
         return encrypted_message
 
     def broadcast(self, message, sender=None):
-        """Broadcast message to all connected clients except the sender"""
         for client in self.clients:
             if client != sender:
                 try:
@@ -82,19 +77,15 @@ class ChatServer:
                     self.remove_client(client)
 
     def handle_client(self, client_socket, address):
-        """Handle individual client connections"""
         try:
             print(f"\033[93mNew secure connection attempt from {address}\033[0m")
             
-            # Wrap socket with SSL
             secure_socket = self.context.wrap_socket(client_socket, server_side=True)
             
-            # Generate and send session key
             session_key = self.generate_session_key()
             secure_socket.send(session_key)
             self.session_keys[secure_socket] = session_key
             
-            # Get username from client
             username_data = secure_socket.recv(1024).decode()
             username_data = json.loads(self.decrypt_message(username_data, secure_socket))
             username = username_data['username']
@@ -102,11 +93,9 @@ class ChatServer:
             self.clients[secure_socket] = username
             print(f"\033[92mSecure client connected: {username} from {address}\033[0m")
             
-            # Assign color based on number of connected clients
             color_index = len(self.clients) - 1
             user_color = self.colors.get(color_index, self.color_reset)
             
-            # Send welcome message
             welcome_message = {
                 'type': 'system',
                 'message': f"Welcome to the secure chat, {user_color}{username}{self.color_reset}!",
@@ -114,7 +103,6 @@ class ChatServer:
             }
             secure_socket.send(self.encrypt_message(json.dumps(welcome_message), secure_socket).encode())
             
-            # Broadcast new user joined
             self.broadcast({
                 'type': 'system',
                 'message': f"{user_color}{username}{self.color_reset} joined the chat",
@@ -151,7 +139,6 @@ class ChatServer:
             self.remove_client(secure_socket)
 
     def remove_client(self, client_socket):
-        """Remove client from the connected clients list"""
         if client_socket in self.clients:
             username = self.clients[client_socket]
             if client_socket in self.session_keys:
@@ -166,7 +153,6 @@ class ChatServer:
             })
 
     def start(self):
-        """Start the server and accept connections"""
         while True:
             try:
                 client_socket, address = self.server_socket.accept()

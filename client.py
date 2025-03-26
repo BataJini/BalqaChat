@@ -23,7 +23,6 @@ def print_title():
 
 class ChatClient:
     def __init__(self, host='localhost', port=5000):
-        # Handle ngrok URL format
         if ':' in host:
             host, port = host.split(':')
             port = int(port)
@@ -36,18 +35,14 @@ class ChatClient:
         print(f"\033[93mAttempting to connect to {self.host}:{self.port}\033[0m")
 
     def connect(self):
-        """Connect to the server"""
         try:
-            # Create SSL context
             context = ssl.create_default_context()
             context.check_hostname = False
             context.verify_mode = ssl.CERT_NONE
             
-            # Connect and wrap with SSL
             self.socket = context.wrap_socket(self.socket, server_hostname=self.host)
             self.socket.connect((self.host, self.port))
             
-            # Receive session key
             self.session_key = self.socket.recv(1024)
             
             print("\033[92mSecure connection established!\033[0m")
@@ -61,21 +56,18 @@ class ChatClient:
             return False
 
     def encrypt_message(self, message):
-        """Encrypt message using session key"""
         if self.session_key:
             f = Fernet(self.session_key)
             return f.encrypt(message.encode()).decode()
         return message
 
     def decrypt_message(self, encrypted_message):
-        """Decrypt message using session key"""
         if self.session_key:
             f = Fernet(self.session_key)
             return f.decrypt(encrypted_message.encode()).decode()
         return encrypted_message
 
     def receive_messages(self):
-        """Receive and display messages from the server"""
         while True:
             try:
                 message = self.socket.recv(1024).decode()
@@ -87,18 +79,16 @@ class ChatClient:
                     decrypted_message = self.decrypt_message(message)
                     data = json.loads(decrypted_message)
                     
-                    # Clear the current line
                     print('\r\033[K', end='')
                     
                     if data['type'] == 'system':
                         print(f"\n\033[90m[{data['timestamp']}] {data['message']}\033[0m")
-                    else:  # Regular message
+                    else:
                         if data['username'] == self.username:
                             print(f"\n\033[95mYou\033[0m: {data['message']}")
                         else:
                             print(f"\n{data['color']}{data['username']}\033[0m: {data['message']}")
                     
-                    # Always show the prompt after any message
                     print(f"\r\033[95mYou\033[0m: ", end='', flush=True)
                 except json.JSONDecodeError as e:
                     print(f"\033[91mError decoding message: {e}\033[0m")
@@ -109,7 +99,6 @@ class ChatClient:
                 break
 
     def send_message(self, message):
-        """Send message to the server"""
         try:
             message_data = json.dumps({
                 'type': 'message',
@@ -121,11 +110,9 @@ class ChatClient:
             print(f"\033[91mError sending message: {e}\033[0m")
 
     def start(self):
-        """Start the chat client"""
         if not self.connect():
             return
 
-        # Get username and send it to server
         self.username = input("Enter your username: ")
         username_data = json.dumps({
             'type': 'username',
@@ -134,7 +121,6 @@ class ChatClient:
         encrypted_username = self.encrypt_message(username_data)
         self.socket.send(encrypted_username.encode())
 
-        # Start receiving messages in a separate thread
         receive_thread = threading.Thread(target=self.receive_messages)
         receive_thread.daemon = True
         receive_thread.start()
@@ -142,19 +128,14 @@ class ChatClient:
         print("\nSecure chat started! Type your messages (press Ctrl+C to exit)")
         print("-" * 50)
 
-        # Main loop for sending messages
         try:
             while True:
-                # Show typing prompt
                 print(f"\r\033[95mYou\033[0m: ", end='', flush=True)
                 
-                # Get message input
                 message = input()
                 
-                # Send the message
-                if message.strip():  # Only send non-empty messages
+                if message.strip():
                     self.send_message(message)
-                    # Show the prompt again after sending
                     print(f"\r\033[95mYou\033[0m: ", end='', flush=True)
                 
         except KeyboardInterrupt:
@@ -164,7 +145,6 @@ class ChatClient:
 
 if __name__ == "__main__":
     print_title()
-    # Get host and port from command line arguments or use defaults
     host = sys.argv[1] if len(sys.argv) > 1 else 'localhost'
     port = int(sys.argv[2]) if len(sys.argv) > 2 else 5000
     
