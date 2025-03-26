@@ -72,6 +72,3 @@ python3 client.py your-ngrok-url 8081
   - Message tampering
   - Eavesdropping
 
-## License
-
-MIT License # ChatUnix
