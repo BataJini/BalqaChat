@@ -8,6 +8,19 @@ import select
 import ssl
 from cryptography.fernet import Fernet
 
+def print_title():
+    print("""\n ▄▄▄▄    ▄▄▄       ██▓      █████   ▄▄▄      
+▓█████▄ ▒████▄    ▓██▒    ▒██▓  ██▒▒████▄    
+▒██▒ ▄██▒██  ▀█▄  ▒██░    ▒██▒  ██░▒██  ▀█▄  
+▒██░█▀  ░██▄▄▄▄██ ▒██░    ░██  █▀ ░░██▄▄▄▄██ 
+░▓█  ▀█▓ ▓█   ▓██▒░██████▒░▒███▒█▄  ▓█   ▓██▒
+░▒▓███▀▒ ▒▒   ▓▒█░░ ▒░▓  ░░░ ▒▒░ ▒  ▒▒   ▓▒█░
+▒░▒   ░   ▒   ▒▒ ░░ ░ ▒  ░ ░ ▒░  ░   ▒   ▒▒ ░
+ ░    ░   ░   ▒     ░ ░      ░   ░   ░   ▒   
+ ░            ░  ░    ░  ░    ░          ░  ░
+      ░       """)
+    print("=" * 50)
+
 class ChatClient:
     def __init__(self, host='localhost', port=5000):
         # Handle ngrok URL format
@@ -19,9 +32,6 @@ class ChatClient:
         self.port = port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.username = None
-        self.typing = False
-        self.last_typing_update = 0
-        self.typing_update_interval = 0.5  # seconds
         self.session_key = None
         print(f"\033[93mAttempting to connect to {self.host}:{self.port}\033[0m")
 
@@ -64,18 +74,6 @@ class ChatClient:
             return f.decrypt(encrypted_message.encode()).decode()
         return encrypted_message
 
-    def send_typing_status(self, is_typing):
-        """Send typing status to server"""
-        try:
-            message = json.dumps({
-                'type': 'typing',
-                'is_typing': is_typing
-            })
-            encrypted_message = self.encrypt_message(message)
-            self.socket.send(encrypted_message.encode())
-        except Exception as e:
-            print(f"\033[91mError sending typing status: {e}\033[0m")
-
     def receive_messages(self):
         """Receive and display messages from the server"""
         while True:
@@ -89,21 +87,19 @@ class ChatClient:
                     decrypted_message = self.decrypt_message(message)
                     data = json.loads(decrypted_message)
                     
-                    # Clear typing indicator line
-                    print('\033[K', end='\r')
+                    # Clear the current line
+                    print('\r\033[K', end='')
                     
                     if data['type'] == 'system':
                         print(f"\n\033[90m[{data['timestamp']}] {data['message']}\033[0m")
-                    elif data['type'] == 'typing_status':
-                        if data['message']:
-                            print(f"\r\033[90m{data['message']}\033[0m", end='', flush=True)
-                        else:
-                            print('\r\033[K', end='', flush=True)
                     else:  # Regular message
                         if data['username'] == self.username:
-                            print(f"\n\033[90m[{data['timestamp']}] \033[95mYou\033[0m: {data['message']}")
+                            print(f"\n\033[95mYou\033[0m: {data['message']}")
                         else:
-                            print(f"\n\033[90m[{data['timestamp']}] {data['color']}{data['username']}\033[0m: {data['message']}")
+                            print(f"\n{data['color']}{data['username']}\033[0m: {data['message']}")
+                    
+                    # Always show the prompt after any message
+                    print(f"\r\033[95mYou\033[0m: ", end='', flush=True)
                 except json.JSONDecodeError as e:
                     print(f"\033[91mError decoding message: {e}\033[0m")
                     continue
@@ -149,28 +145,17 @@ class ChatClient:
         # Main loop for sending messages
         try:
             while True:
-                # Check if there's input available
-                if select.select([sys.stdin], [], [], 0.1)[0]:
-                    # User is typing
-                    if not self.typing:
-                        self.typing = True
-                        self.send_typing_status(True)
-                    self.last_typing_update = time.time()
-                
-                # Update typing status
-                if self.typing and time.time() - self.last_typing_update > self.typing_update_interval:
-                    self.typing = False
-                    self.send_typing_status(False)
-                
                 # Show typing prompt
                 print(f"\r\033[95mYou\033[0m: ", end='', flush=True)
                 
                 # Get message input
                 message = input()
-                if self.typing:
-                    self.typing = False
-                    self.send_typing_status(False)
-                self.send_message(message)
+                
+                # Send the message
+                if message.strip():  # Only send non-empty messages
+                    self.send_message(message)
+                    # Show the prompt again after sending
+                    print(f"\r\033[95mYou\033[0m: ", end='', flush=True)
                 
         except KeyboardInterrupt:
             print("\n\033[93mDisconnecting from server...\033[0m")
@@ -178,6 +163,7 @@ class ChatClient:
             sys.exit()
 
 if __name__ == "__main__":
+    print_title()
     # Get host and port from command line arguments or use defaults
     host = sys.argv[1] if len(sys.argv) > 1 else 'localhost'
     port = int(sys.argv[2]) if len(sys.argv) > 2 else 5000

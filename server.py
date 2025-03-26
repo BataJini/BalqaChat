@@ -11,6 +11,19 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
+def print_title():
+    print("""\n ▄▄▄▄    ▄▄▄       ██▓      █████   ▄▄▄      
+▓█████▄ ▒████▄    ▓██▒    ▒██▓  ██▒▒████▄    
+▒██▒ ▄██▒██  ▀█▄  ▒██░    ▒██▒  ██░▒██  ▀█▄  
+▒██░█▀  ░██▄▄▄▄██ ▒██░    ░██  █▀ ░░██▄▄▄▄██ 
+░▓█  ▀█▓ ▓█   ▓██▒░██████▒░▒███▒█▄  ▓█   ▓██▒
+░▒▓███▀▒ ▒▒   ▓▒█░░ ▒░▓  ░░░ ▒▒░ ▒  ▒▒   ▓▒█░
+▒░▒   ░   ▒   ▒▒ ░░ ░ ▒  ░ ░ ▒░  ░   ▒   ▒▒ ░
+ ░    ░   ░   ▒     ░ ░      ░   ░   ░   ▒   
+ ░            ░  ░    ░  ░    ░          ░  ░
+      ░       """)
+    print("=" * 50)
+
 class ChatServer:
     def __init__(self, host='0.0.0.0', port=5000):
         self.host = host
@@ -31,7 +44,6 @@ class ChatServer:
             sys.exit(1)
             
         self.clients = {}  # Dictionary to store client connections and their usernames
-        self.typing_users = set()  # Set to track who is typing
         self.colors = {
             0: '\033[91m',  # Red
             1: '\033[92m',  # Green
@@ -119,30 +131,12 @@ class ChatServer:
                     decrypted_message = self.decrypt_message(message, secure_socket)
                     data = json.loads(decrypted_message)
                     
-                    if data['type'] == 'typing':
-                        if data['is_typing']:
-                            self.typing_users.add(username)
-                        else:
-                            self.typing_users.discard(username)
-                        
-                        typing_list = list(self.typing_users)
-                        if typing_list:
-                            typing_message = f"{', '.join(typing_list)} {'is' if len(typing_list) == 1 else 'are'} typing..."
-                        else:
-                            typing_message = ""
-                        
-                        self.broadcast({
-                            'type': 'typing_status',
-                            'message': typing_message
-                        })
-                    
-                    else:  # Regular message
+                    if data['type'] == 'message':
                         self.broadcast({
                             'type': 'message',
                             'username': username,
                             'message': data['message'],
-                            'color': user_color,
-                            'timestamp': datetime.now().strftime("%H:%M:%S")
+                            'color': user_color
                         }, secure_socket)
                 except json.JSONDecodeError as e:
                     print(f"\033[91mError decoding message from {username}: {e}\033[0m")
@@ -160,7 +154,6 @@ class ChatServer:
         """Remove client from the connected clients list"""
         if client_socket in self.clients:
             username = self.clients[client_socket]
-            self.typing_users.discard(username)
             if client_socket in self.session_keys:
                 del self.session_keys[client_socket]
             del self.clients[client_socket]
@@ -188,6 +181,7 @@ class ChatServer:
                 print(f"\033[91mError accepting connection: {e}\033[0m")
 
 if __name__ == "__main__":
+    print_title()
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 5000
     server = ChatServer(port=port)
     server.start() 

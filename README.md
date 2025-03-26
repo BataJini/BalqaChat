@@ -1,28 +1,15 @@
-# Secure Terminal Chat
 
-A secure, terminal-based chat application with end-to-end encryption and real-time typing indicators.
+## BalqaChat
 
-## Features
+BalqaChat is terminal based messaging platform
 
-- End-to-end encryption using Fernet (symmetric encryption)
-- SSL/TLS secure connection
-- Real-time typing indicators
-- Colored usernames
-- Timestamp for messages
-- System messages for user join/leave events
-
-## Prerequisites
-
-- Python 3.x
-- pip (Python package installer)
-- OpenSSL (for generating SSL certificates)
 
 ## Installation
 
 1. Clone the repository:
 ```bash
-git clone  https://github.com/BataJini/ChatUnix
-cd ChatUnix
+git clone  https://github.com/BataJini/BalqaChat
+cd BalqaChat
 ```
 
 2. Install required packages:
@@ -60,15 +47,4 @@ ngrok tcp 8081
 # Connect using the ngrok URL
 python3 client.py your-ngrok-url 8081
 ```
-
-## Security Features
-
-- SSL/TLS encryption for the connection
-- End-to-end encryption for messages using Fernet
-- Unique session keys for each client
-- Protection against:
-  - Man-in-the-middle attacks
-  - Message interception
-  - Message tampering
-  - Eavesdropping
 

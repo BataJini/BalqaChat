@@ -1,5 +1,8 @@
-# This project uses only Python's built-in libraries
-# No additional packages are required 
+
 
 cryptography>=44.0.2
-colorama>=0.4.6  # For colored terminal output 
+colorama>=0.4.6  
+
+# 1. OpenSSL (for generating SSL certificates)
+# 2. Generate SSL certificates by running:
+#    openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -days 365 -nodes 
