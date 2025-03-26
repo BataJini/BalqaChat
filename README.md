@@ -21,7 +21,7 @@ A secure, terminal-based chat application with end-to-end encryption and real-ti
 
 1. Clone the repository:
 ```bash
-git clone <your-repository-url>
+git clone  https://github.com/BataJini/ChatUnix
 cd ChatUnix
 ```
 
