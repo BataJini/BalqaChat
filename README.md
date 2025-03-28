@@ -1,7 +1,7 @@
 
 ## BalqaChat
 
-BalqaChat is terminal based messaging platform
+BalqaChat is terminal based messaging platform secured with ssl
 
 
 ## Installation
